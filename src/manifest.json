@@ -1,8 +1,9 @@
 {
   "name": "web note",
-  "description": "Take notes as you digest content on the web",
+  "description": "Take notes as you digest content on the web. Notes are saved on the browser.",
   "version": "0.0.1",
-  "permissions": ["tabs", "contextMenus"],
+  "content_security_policy": "default-src 'self'",
+  "permissions": ["tabs", "contextMenus", "https://webnote.web.app"],
   "manifest_version": 2,
   "icons": {
     "48": "icons/icon_48.png",
