@@ -1,9 +1,9 @@
 {
-  "name": "web note",
+  "name": "Web Note - handy browser note book",
   "description": "Take notes as you digest content on the web. Notes are saved on the browser.",
   "version": "0.0.1",
   "content_security_policy": "default-src 'self'",
-  "permissions": ["tabs", "contextMenus", "https://webnote.web.app"],
+  "permissions": ["tabs", "contextMenus"],
   "manifest_version": 2,
   "icons": {
     "48": "icons/icon_48.png",

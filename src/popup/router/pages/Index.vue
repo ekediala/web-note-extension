@@ -3,7 +3,7 @@
     <form class="form">
       <div>
         <h2 id="title">{{ note.title ? note.title : 'New Note' }}</h2>
-        <p>Visit <a href="" @click.prevent="navigateTo">webnotes</a> to view and manage your notes.</p>
+        <!-- <p>Visit <a href="" @click.prevent="navigateTo">webnotes</a> to view and manage your notes.</p> -->
       </div>
       <div class="form-group">
         <input autocomplete required @keyup="autoSave" id="noteTitle" type="text" placeholder="Enter title" v-model="note.title" />
@@ -13,15 +13,15 @@
       </div>
       <button id="btn-download" type="submit" class="btn" @click="download">Download note ⏬</button> &nbsp;
       <button id="btn-clear" class="btn" @click.prevent="clear">Clear &#10006;</button> &nbsp;
-      <button type="submit" id="btn-new" class="btn" @click="newNote">Done &#10004;</button>
+      <!-- <button type="submit" id="btn-new" class="btn" @click="archive">Archive &#10004;</button> -->
       <br />
-      <small style="color: darkcyan">{{ note.showSaved ? 'Saving...' : 'Saved' }}</small>
-      <div>
+      <small v-show="typing" style="color: darkcyan">{{ note.showSaved ? 'Saving...' : 'Saved' }}</small>
+      <!-- <div>
         <p>
-          Clicking 'DONE' saves current document and clears the note for a new note entry else the new document overrites the old one. Notes belong to the page (url) they are
-          running on and are saved on the browser.
+          Clicking 'archive' saves current document and clears the note for a new note entry else the new document overrites the old one. Notes belong to the page (url) they are
+          running on and are saved on the browser. Archived notes can be found at <a href="" @click.prevent="navigateTo">webnotes</a>
         </p>
-      </div>
+      </div> -->
     </form>
   </div>
 </template>
@@ -31,6 +31,8 @@ import jsPDF from 'jspdf';
 export default {
   data() {
     return {
+      url: '',
+      typing: false,
       note: {
         title: '',
         note: '',
@@ -41,28 +43,20 @@ export default {
 
   methods: {
     autoSave() {
-      chrome.tabs.query({ currentWindow: true, active: true }, tabs => {
-        let url = tabs[0].url;
-        let searchString = '/';
-        let regex = new RegExp(searchString, 'g');
-        url = url.replace(regex, '-');
-        let title = this.note.title;
-        let note = this.note.note;
-        let notes = JSON.parse(localStorage.getItem(url));
-        let currentNote = notes[notes.length - 1];
-        currentNote.title = title;
-        currentNote.note = note;
-        localStorage.setItem(url, JSON.stringify(notes));
-        let notesCollection = JSON.parse(localStorage.getItem('EkeDialaWebNotesDocuments'));
-        const predicate = obj => (obj.url = url);
-        let collection = notesCollection.find(predicate);
-        collection.notes = JSON.parse(localStorage.getItem(url));
-        localStorage.setItem('EkeDialaWebNotesDocuments', JSON.stringify(notesCollection));
-        this.note.showSaved = true;
-        setTimeout(() => {
-          this.note.showSaved = false;
-        }, 1000);
-      });
+      this.typing = true;
+      let title = this.note.title;
+      let note = this.note.note;
+      let url = this.url;
+      let notes = JSON.parse(localStorage.getItem(url));
+      let currentNote = notes[notes.length - 1];
+      currentNote.title = title;
+      currentNote.note = note;
+      localStorage.setItem(url, JSON.stringify(notes));
+      // this.save();
+      this.note.showSaved = true;
+      setTimeout(() => {
+        this.note.showSaved = false;
+      }, 1000);
     },
 
     download() {
@@ -95,63 +89,79 @@ export default {
     },
 
     navigateTo() {
-      chrome.tabs.create({ url: 'https://www.webnotes.web.app' });
+      chrome.tabs.create({ url: 'https://webnotes.web.app' });
     },
 
-    newNote() {
-      this.download();
-      chrome.tabs.query({ currentWindow: true, active: true }, tabs => {
-        let url = tabs[0].url;
-        let searchString = '/';
-        let regex = new RegExp(searchString, 'g');
-        url = url.replace(regex, '-');
-        let notes = JSON.parse(localStorage.getItem(url));
-        if (notes && notes.length > 0) {
-          const currentNote = {
-            title: '',
-            note: '',
-          };
-          notes.push(currentNote);
-          localStorage.setItem(url, JSON.stringify(notes));
-          let notesCollection = JSON.parse(localStorage.getItem('EkeDialaWebNotesDocuments'));
-          const predicate = obj => (obj.url = url);
-          let collection = notesCollection.find(predicate);
-          collection.notes = JSON.parse(localStorage.getItem(url));
-          localStorage.setItem('EkeDialaWebNotesDocuments', JSON.stringify(notesCollection));
-          this.clear();
-        }
-      });
+    archive() {
+      this.note.showSaved = false;
+      let url = this.url;
+      let notes = JSON.parse(localStorage.getItem(url));
+      if (notes && notes.length > 0) {
+        const currentNote = {
+          title: '',
+          note: '',
+        };
+        notes.push(currentNote);
+        localStorage.setItem(url, JSON.stringify(notes));
+        this.save();
+        this.download();
+        this.clear();
+        this.note.showSaved = true;
+      } else {
+        alert('Empty note cannot be archived!');
+        return false;
+      }
     },
 
     clear() {
       this.$nextTick().then(() => {
-        chrome.tabs.query({ currentWindow: true, active: true }, tabs => {
-          let url = tabs[0].url;
-          let searchString = '/';
-          let regex = new RegExp(searchString, 'g');
-          url = url.replace(regex, '-');
-          let notes = JSON.parse(localStorage.getItem(url));
-          let note = notes[notes.length - 1];
-          note.title = '';
-          note.note = '';
-          localStorage.setItem(url, JSON.stringify(notes));
-          this.note.title = '';
-          this.note.note = '';
-        });
+        let url = this.url;
+        let notes = JSON.parse(localStorage.getItem(url));
+        let note = notes[notes.length - 1];
+        note.title = '';
+        note.note = '';
+        localStorage.setItem(url, JSON.stringify(notes));
+        this.note.title = '';
+        this.note.note = '';
       });
+    },
+
+    save() {
+      let url = this.url;
+      let notesCollection = JSON.parse(localStorage.getItem('EkeDialaWebNotesDocuments'));
+      let found = false;
+      for (const collection in notesCollection) {
+        if (collection.url == url) {
+          collection.notes = JSON.parse(localStorage.getItem(url));
+          found = true;
+        }
+      }
+      if (!found) {
+        // no url note collection, create one
+        let noteObject = {
+          url,
+          notes: [
+            {
+              title: this.note.title,
+              note: this.note.note,
+            },
+          ],
+        };
+        notesCollection.push(noteObject);
+      }
+      localStorage.setItem('EkeDialaWebNotesDocuments', JSON.stringify(notesCollection));
     },
   },
 
   created() {
     //check if there is a note running already on the current tab
-    if (!localStorage.getItem('EkeDialaWebNotesDocuments')) {
-      localStorage.setItem('EkeDialaWebNotesDocuments', JSON.stringify([]));
-    }
+    //localStorage.removeItem('EkeDialaWebNotesDocuments');
     chrome.tabs.query({ currentWindow: true, active: true }, tabs => {
       let url = tabs[0].url;
       let searchString = '/';
       let regex = new RegExp(searchString, 'g');
       url = url.replace(regex, '-');
+      this.url = url;
       let notes = JSON.parse(localStorage.getItem(url));
       let currentNote = {};
       if (notes) {
@@ -174,13 +184,8 @@ export default {
         currentNote = notes[0];
         this.note.title = currentNote.title;
         this.note.note = currentNote.note;
-        let noteObject = { url, notes };
-        let notesCollection = JSON.parse(localStorage.getItem('EkeDialaWebNotesDocuments'));
-        notesCollection.push(noteObject);
-        localStorage.setItem('EkeDialaWebNotesDocuments', JSON.stringify(notesCollection));
       }
     });
-    console.log(localStorage.getItem('EkeDialaWebNotesDocuments'));
   },
 };
 </script>
