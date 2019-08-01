@@ -13,6 +13,7 @@
       </div>
       <button id="btn-download" type="submit" class="btn" @click="download">Download note ⏬</button> &nbsp;
       <button id="btn-clear" class="btn" @click.prevent="clear">Clear &#10006;</button> &nbsp;
+      <button v-show="backUp.showUndo" id="btn-undo" class="btn" @click.prevent="undo">Undo Clear &#9851;</button> &nbsp;
       <!-- <button type="submit" id="btn-new" class="btn" @click="archive">Archive &#10004;</button> -->
       <br />
       <small v-show="typing" style="color: darkcyan">{{ note.showSaved ? 'Saving...' : 'Saved' }}</small>
@@ -38,12 +39,21 @@ export default {
         note: '',
         showSaved: false,
       },
+      backUp: {
+        title: '',
+        note: '',
+        showUndo: '',
+      },
     };
   },
 
   methods: {
     autoSave() {
       this.typing = true;
+      this.backUp.title = '';
+      this.backUp.note = '';
+      localStorage.removeItem('clear');
+      this.backUp.showUndo = false;
       let title = this.note.title;
       let note = this.note.note;
       let url = this.url;
@@ -57,39 +67,6 @@ export default {
       setTimeout(() => {
         this.note.showSaved = false;
       }, 1000);
-    },
-
-    download() {
-      if (this.note.title && this.note.note) {
-        let doc = new jsPDF();
-        let note = this.note.note;
-        let title = doc.splitTextToSize(this.note.title.toUpperCase(), 200);
-        let firstPage = doc.splitTextToSize(note.slice(0, 4000), 250);
-        let filename = this.note.title.toLowerCase().replace(/\s/g, '_');
-        doc.setFontSize(18);
-        doc.setFont('sans-serif', 'bold');
-        doc.text(title, 10, 20, { align: 'left' });
-        doc.setFont('sans-serif', 'normal');
-        doc.setLineHeightFactor(1.2);
-        doc.setFontSize(14);
-        doc.text(firstPage, 10, 35, { align: 'left' });
-        let unit = 4000;
-        let cursorPosition = 4000;
-        let pageNo = 1;
-        while (note.length > unit * pageNo) {
-          pageNo++;
-          doc.addPage();
-          doc.text(doc.splitTextToSize(note.slice(cursorPosition, unit * pageNo), 250), 10, 30, { align: 'left' });
-          cursorPosition = unit * pageNo;
-        }
-        doc.save(`${filename}.pdf`);
-      } else {
-        alert('Document is empty.');
-      }
-    },
-
-    navigateTo() {
-      chrome.tabs.create({ url: 'https://webnotes.web.app' });
     },
 
     archive() {
@@ -114,18 +91,59 @@ export default {
     },
 
     clear() {
-      this.$nextTick().then(() => {
-        let url = this.url;
-        let notes = JSON.parse(localStorage.getItem(url));
-        let note = notes[notes.length - 1];
-        note.title = '';
-        note.note = '';
-        localStorage.setItem(url, JSON.stringify(notes));
-        this.note.title = '';
-        this.note.note = '';
-      });
+      if (this.note.title || this.note.note) {
+        this.$nextTick().then(() => {
+          let url = this.url;
+          localStorage.setItem('clear', 'true');
+          this.backUp.showUndo = true;
+          let notes = JSON.parse(localStorage.getItem(url));
+          let note = notes[notes.length - 1];
+          this.backUp.title = note.title;
+          this.backUp.note = note.note;
+          note.title = '';
+          note.note = '';
+          localStorage.setItem(url, JSON.stringify(notes));
+          this.note.title = '';
+          this.note.note = '';
+        });
+      }
     },
 
+    download() {
+      if (this.note.title && this.note.note) {
+        this.autoSave();
+        let doc = new jsPDF();
+        let note = this.note.note;
+        let title = doc.splitTextToSize(this.note.title.toUpperCase(), 200);
+        let firstPage = doc.splitTextToSize(note.slice(0, 4000), 250);
+        let filename = this.note.title.toLowerCase().replace(/\s/g, '_');
+        doc.setFontSize(18);
+        doc.setFont('sans-serif', 'bold');
+        doc.text(title, 10, 20, { align: 'left' });
+        doc.setFont('sans-serif', 'normal');
+        doc.setLineHeightFactor(1.2);
+        doc.setFontSize(14);
+        doc.text(firstPage, 10, 35, { align: 'left' });
+        let unit = 4000;
+        let cursorPosition = 4000;
+        let pageNo = 1;
+        while (note.length > unit * pageNo) {
+          pageNo++;
+          doc.addPage();
+          doc.text(doc.splitTextToSize(note.slice(cursorPosition, unit * pageNo), 250), 10, 30, { align: 'left' });
+          cursorPosition = unit * pageNo;
+        }
+        doc.save(`${filename}.pdf`);
+      } else {
+        alert('Note title or body missing.');
+      }
+    },
+
+    navigateTo() {
+      chrome.tabs.create({ url: 'https://webnotes.web.app' });
+    },
+
+    // save() is not yet in use
     save() {
       let url = this.url;
       let notesCollection = JSON.parse(localStorage.getItem('EkeDialaWebNotesDocuments'));
@@ -151,11 +169,20 @@ export default {
       }
       localStorage.setItem('EkeDialaWebNotesDocuments', JSON.stringify(notesCollection));
     },
+
+    undo() {
+      this.$nextTick().then(() => {
+        this.note.title = this.backUp.title;
+        this.note.note = this.backUp.note;
+        this.autoSave();
+      });
+    },
   },
 
   created() {
     //check if there is a note running already on the current tab
     //localStorage.removeItem('EkeDialaWebNotesDocuments');
+    this.backUp.showUndo = false;
     chrome.tabs.query({ currentWindow: true, active: true }, tabs => {
       let url = tabs[0].url;
       let searchString = '/';
@@ -251,7 +278,7 @@ export default {
   background-color: rgb(0, 81, 255);
 }
 
-#btn-new {
+#btn-undo {
   background-color: orange;
 }
 
