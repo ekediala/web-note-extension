@@ -111,11 +111,10 @@ export default {
 
     download() {
       if (this.note.title && this.note.note) {
-        this.autoSave();
         let doc = new jsPDF();
         let note = this.note.note;
         let title = doc.splitTextToSize(this.note.title.toUpperCase(), 200);
-        let firstPage = doc.splitTextToSize(note.slice(0, 4000), 250);
+        let firstPage = doc.splitTextToSize(note.slice(0, 4000), 230);
         let filename = this.note.title.toLowerCase().replace(/\s/g, '_');
         doc.setFontSize(18);
         doc.setFont('sans-serif', 'bold');
@@ -130,7 +129,7 @@ export default {
         while (note.length > unit * pageNo) {
           pageNo++;
           doc.addPage();
-          doc.text(doc.splitTextToSize(note.slice(cursorPosition, unit * pageNo), 250), 10, 30, { align: 'left' });
+          doc.text(doc.splitTextToSize(note.slice(cursorPosition, unit * pageNo), 190), 5, 20, { align: 'left' });
           cursorPosition = unit * pageNo;
         }
         doc.save(`${filename}.pdf`);
@@ -139,6 +138,7 @@ export default {
       }
     },
 
+    // not in use
     navigateTo() {
       chrome.tabs.create({ url: 'https://webnotes.web.app' });
     },
