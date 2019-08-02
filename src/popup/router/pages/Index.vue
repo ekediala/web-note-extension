@@ -11,18 +11,12 @@
       <div class="form-group">
         <textarea autocomplete required id="note" @keyup="autoSave" placeholder="Enter note" v-model="note.note" cols="50" rows="15"></textarea>
       </div>
-      <button id="btn-download" type="submit" class="btn" @click="download">Download note ⏬</button> &nbsp;
-      <button id="btn-clear" class="btn" @click.prevent="clear">Clear &#10006;</button> &nbsp;
+      <button id="btn-download" v-show="downloadable" type="submit" class="btn" @click="download">Download note ⏬</button> &nbsp;
+      <button id="btn-clear" v-show="clearable" class="btn" @click.prevent="clear">Clear &#10006;</button> &nbsp;
       <button v-show="backUp.showUndo" id="btn-undo" class="btn" @click.prevent="undo">Undo Clear &#9851;</button> &nbsp;
       <!-- <button type="submit" id="btn-new" class="btn" @click="archive">Archive &#10004;</button> -->
       <br />
-      <small v-show="typing" style="color: darkcyan">{{ note.showSaved ? 'Saving...' : 'Saved' }}</small>
-      <!-- <div>
-        <p>
-          Clicking 'archive' saves current document and clears the note for a new note entry else the new document overrites the old one. Notes belong to the page (url) they are
-          running on and are saved on the browser. Archived notes can be found at <a href="" @click.prevent="navigateTo">webnotes</a>
-        </p>
-      </div> -->
+      <small v-show="typing && clearable" style="color: darkcyan">{{ note.showSaved ? 'Saving...' : 'Saved' }}</small>
     </form>
   </div>
 </template>
@@ -45,6 +39,16 @@ export default {
         showUndo: '',
       },
     };
+  },
+
+  computed: {
+    downloadable() {
+      return this.note.title && this.note.note;
+    },
+
+    clearable() {
+      return this.note.title || this.note.note;
+    },
   },
 
   methods: {
@@ -218,6 +222,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+* {
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
 .form-group {
   input {
     margin-bottom: 10px;
@@ -233,6 +240,9 @@ export default {
   }
 
   #note {
+    &:focus {
+      outline: none;
+    }
     border: none;
     border-bottom: 3px solid darkcyan;
     border-radius: 2px;
