@@ -3,6 +3,7 @@
     <form class="form">
       <div>
         <h2 id="title">{{ note.title ? note.title : 'New Note' }}</h2>
+        <a id="continueNote" href="" @click.prevent="continueNote" v-if="newUrl">Continue where you left off?</a>
         <!-- <p>Visit <a href="" @click.prevent="navigateTo">webnotes</a> to view and manage your notes.</p> -->
       </div>
       <div class="form-group">
@@ -13,7 +14,7 @@
       </div>
       <button id="btn-download" v-show="downloadable" type="submit" class="btn" @click="download">Download note ⏬</button> &nbsp;
       <button id="btn-clear" v-show="clearable" class="btn" @click.prevent="clear">Clear &#10006;</button> &nbsp;
-      <button v-show="backUp.showUndo" id="btn-undo" class="btn" @click.prevent="undo">Undo Clear &#9851;</button> &nbsp;
+      <button v-show="showUndo" id="btn-undo" class="btn" @click.prevent="undo">Undo &#9851;</button> &nbsp;
       <!-- <button type="submit" id="btn-new" class="btn" @click="archive">Archive &#10004;</button> -->
       <br />
       <small v-show="typing && clearable" style="color: darkcyan">{{ note.showSaved ? 'Saving...' : 'Saved' }}</small>
@@ -27,6 +28,8 @@ export default {
   data() {
     return {
       url: '',
+      lastUrl: '',
+      newUrl: false,
       typing: false,
       note: {
         title: '',
@@ -36,41 +39,31 @@ export default {
       backUp: {
         title: '',
         note: '',
-        showUndo: '',
       },
     };
   },
 
   computed: {
+    clearable() {
+      return this.note.title || this.note.note;
+    },
+
     downloadable() {
       return this.note.title && this.note.note;
     },
 
-    clearable() {
-      return this.note.title || this.note.note;
+    showUndo() {
+      return this.backUp.title || this.backUp.note;
     },
   },
 
   methods: {
     autoSave() {
-      this.typing = true;
       this.backUp.title = '';
       this.backUp.note = '';
       localStorage.removeItem('clear');
-      this.backUp.showUndo = false;
-      let title = this.note.title;
-      let note = this.note.note;
-      let url = this.url;
-      let notes = JSON.parse(localStorage.getItem(url));
-      let currentNote = notes[notes.length - 1];
-      currentNote.title = title;
-      currentNote.note = note;
-      localStorage.setItem(url, JSON.stringify(notes));
-      // this.save();
-      this.note.showSaved = true;
-      setTimeout(() => {
-        this.note.showSaved = false;
-      }, 1000);
+      this.newUrl = false;
+      this.save();
     },
 
     archive() {
@@ -99,7 +92,6 @@ export default {
         this.$nextTick().then(() => {
           let url = this.url;
           localStorage.setItem('clear', 'true');
-          this.backUp.showUndo = true;
           let notes = JSON.parse(localStorage.getItem(url));
           let note = notes[notes.length - 1];
           this.backUp.title = note.title;
@@ -111,6 +103,20 @@ export default {
           this.note.note = '';
         });
       }
+    },
+
+    continueNote() {
+      this.$nextTick().then(() => {
+        let url = localStorage.getItem('lastUrl');
+        let notes = JSON.parse(localStorage.getItem(url));
+        let currNote = notes[notes.length - 1];
+        this.backUp.title = this.note.title;
+        this.backUp.note = this.note.note;
+        this.note.title = currNote.title;
+        this.note.note = currNote.note;
+        this.save();
+        this.newUrl = false;
+      });
     },
 
     download() {
@@ -147,8 +153,26 @@ export default {
       chrome.tabs.create({ url: 'https://webnotes.web.app' });
     },
 
-    // save() is not yet in use
     save() {
+      this.typing = true;
+      let title = this.note.title;
+      let note = this.note.note;
+      localStorage.setItem('lastUrl', this.url);
+      this.lastUrl = this.url;
+      let url = this.url;
+      let notes = JSON.parse(localStorage.getItem(url));
+      let currentNote = notes[notes.length - 1];
+      currentNote.title = title;
+      currentNote.note = note;
+      localStorage.setItem(url, JSON.stringify(notes));
+      this.note.showSaved = true;
+      setTimeout(() => {
+        this.note.showSaved = false;
+      }, 1000);
+    },
+
+    // upload() is not yet in use
+    upload() {
       let url = this.url;
       let notesCollection = JSON.parse(localStorage.getItem('EkeDialaWebNotesDocuments'));
       let found = false;
@@ -178,7 +202,9 @@ export default {
       this.$nextTick().then(() => {
         this.note.title = this.backUp.title;
         this.note.note = this.backUp.note;
-        this.autoSave();
+        this.backUp.title = '';
+        this.backUp.note = '';
+        this.save();
       });
     },
   },
@@ -186,13 +212,16 @@ export default {
   created() {
     //check if there is a note running already on the current tab
     //localStorage.removeItem('EkeDialaWebNotesDocuments');
-    this.backUp.showUndo = false;
     chrome.tabs.query({ currentWindow: true, active: true }, tabs => {
       let url = tabs[0].url;
       let searchString = '/';
       let regex = new RegExp(searchString, 'g');
       url = url.replace(regex, '-');
       this.url = url;
+      this.lastUrl = localStorage.getItem('lastUrl');
+      if (this.lastUrl) {
+        this.newUrl = this.lastUrl != this.url;
+      }
       let notes = JSON.parse(localStorage.getItem(url));
       let currentNote = {};
       if (notes) {
@@ -258,6 +287,13 @@ export default {
   font-size: 30px;
   font-weight: 400;
   text-transform: uppercase;
+}
+
+#continueNote,
+#continueNote:active,
+#continueNote:visited,
+#continueNote:link {
+  text-decoration: none;
 }
 
 .btn:active {
