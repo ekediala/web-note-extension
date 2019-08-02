@@ -3,7 +3,7 @@
     <form class="form">
       <div>
         <h2 id="title">{{ note.title ? note.title : 'New Note' }}</h2>
-        <a id="continueNote" href="" @click.prevent="continueNote" v-if="newUrl">Continue where you left off?</a>
+        <a id="continueNote" href="" @click.prevent="continueNote" v-if="newUrl">Continue "{{ lastNoteTitle }}"?</a>
         <!-- <p>Visit <a href="" @click.prevent="navigateTo">webnotes</a> to view and manage your notes.</p> -->
       </div>
       <div class="form-group">
@@ -31,6 +31,7 @@ export default {
       lastUrl: '',
       newUrl: false,
       typing: false,
+      lastNoteTitle: '',
       note: {
         title: '',
         note: '',
@@ -148,6 +149,17 @@ export default {
       }
     },
 
+    isEmpty() {
+      let url = localStorage.getItem('lastUrl');
+      let notes = JSON.parse(localStorage.getItem(url));
+      let currNote = notes[notes.length - 1];
+      if (currNote.title || currNote.note) {
+        return false;
+      } else {
+        return true;
+      }
+    },
+
     // not in use
     navigateTo() {
       chrome.tabs.create({ url: 'https://webnotes.web.app' });
@@ -220,7 +232,12 @@ export default {
       this.url = url;
       this.lastUrl = localStorage.getItem('lastUrl');
       if (this.lastUrl) {
-        this.newUrl = this.lastUrl != this.url;
+        let status = this.isEmpty();
+        let url = localStorage.getItem('lastUrl');
+        let notes = JSON.parse(localStorage.getItem(url));
+        let currNote = notes[notes.length - 1];
+        this.lastNoteTitle = currNote.title ? currNote.title : 'last edited note';
+        this.newUrl = this.lastUrl != this.url && !status;
       }
       let notes = JSON.parse(localStorage.getItem(url));
       let currentNote = {};
