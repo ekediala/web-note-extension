@@ -3,8 +3,7 @@
     <form class="form">
       <div>
         <h2 id="title">{{ note.title ? note.title : 'New Note' }}</h2>
-        <a id="continueNote" href="" @click.prevent="continueNote" v-if="newUrl">Continue {{ lastNoteTitle }}?</a>
-        <!-- <p>Visit <a href="" @click.prevent="navigateTo">webnotes</a> to view and manage your notes.</p> -->
+        <a class="btn-link" href="#" @click.prevent="continueNote" v-if="newUrl">Continue {{ lastNoteTitle }}?</a>
       </div>
       <div class="form-group">
         <input autocomplete required @keyup="autoSave" id="noteTitle" type="text" placeholder="Enter title" v-model="note.title" />
@@ -37,6 +36,7 @@ export default {
         title: '',
         note: '',
         showSaved: false,
+        position: '',
       },
       backUp: {
         title: '',
@@ -168,6 +168,7 @@ export default {
 
     save() {
       this.typing = true;
+      let position = document.getElementById('note').scrollTop;
       let title = this.note.title;
       let note = this.note.note;
       localStorage.setItem('lastUrl', this.url);
@@ -177,6 +178,7 @@ export default {
       let currentNote = notes[notes.length - 1];
       currentNote.title = title;
       currentNote.note = note;
+      currentNote.position = position;
       localStorage.setItem(url, JSON.stringify(notes));
       this.note.showSaved = true;
       setTimeout(() => {
@@ -246,6 +248,7 @@ export default {
         currentNote = notes[notes.length - 1];
         this.note.title = currentNote.title;
         this.note.note = currentNote.note;
+        this.note.position = currentNote.position;
       } else {
         // extract url and save it as the key to a
         // note array in local storage
@@ -255,6 +258,7 @@ export default {
             {
               title: '',
               note: '',
+              position: 0,
             },
           ])
         );
@@ -262,8 +266,26 @@ export default {
         currentNote = notes[0];
         this.note.title = currentNote.title;
         this.note.note = currentNote.note;
+        this.note.position = currentNote.position;
       }
     });
+  },
+
+  mounted() {
+    let note = document.getElementById('note');
+    setTimeout(() => {
+      let height = this.note.position ? this.note.position : 0;
+      note.scrollTo(0, height);
+    }, 1);
+
+    note.onscroll = () => {
+      let position = note.scrollTop;
+      let url = this.url;
+      let notes = JSON.parse(localStorage.getItem(url));
+      let currentNote = notes[notes.length - 1];
+      currentNote.position = position;
+      localStorage.setItem(url, JSON.stringify(notes));
+    };
   },
 };
 </script>
@@ -307,10 +329,10 @@ export default {
   text-transform: uppercase;
 }
 
-#continueNote,
-#continueNote:active,
-#continueNote:visited,
-#continueNote:link {
+.btn-link,
+.btn-link:active,
+.btn-link:visited,
+.btn-link:link {
   text-decoration: none;
 }
 
