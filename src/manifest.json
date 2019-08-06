@@ -1,7 +1,7 @@
 {
   "name": "Handy Note - handy browser note book",
   "description": "Take notes as you digest content on the web.",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "content_security_policy": "default-src 'self'",
   "permissions": ["tabs", "contextMenus"],
   "manifest_version": 2,

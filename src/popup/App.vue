@@ -365,7 +365,7 @@ export default {
 }
 
 #btn-undo {
-  background-color: orange;
+  background-color: orangered;
 }
 
 .form {
