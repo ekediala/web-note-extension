@@ -118,6 +118,12 @@ export default {
         this.note.note = currNote.note;
         this.save();
         this.newUrl = false;
+        setTimeout(() => {
+          let position = document.getElementById('note').scrollTop;
+          let note = document.getElementById('note');
+          note.scrollTo(0, position);
+          console.log('Ran');
+        }, 500);
       });
     },
 
