@@ -19,7 +19,7 @@
     }
   },
   "dependencies": {
-    "jspdf": "^1.5.3",
+    "jspdf": "^2.5.1",
     "vue": "^2.6.10",
     "webextension-polyfill": "^0.3.1"
   },
